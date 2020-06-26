@@ -14,7 +14,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.cyan,
+        scaffoldBackgroundColor: Colors.grey[900],
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: HomePage(),
@@ -33,7 +34,8 @@ class HomePage extends StatefulWidget{
 class _HomePageState extends State<HomePage> {
 
   var notes = ['Hello World', 'Second Note'];
-  var colors = [Colors.red[200], Colors.blue[200], Colors.green[200], Colors.grey[350], Colors.indigo[200]];
+  var colors = [Colors.red[200], Colors.blue[200], Colors.green[200], Colors.orange[200], Colors.indigo[200]];
+  var borderColors = [Colors.red[400], Colors.blue[400], Colors.green[400], Colors.orange[400], Colors.indigo[400]];
 
   editNote(int index, var note){
     notes[index] = note.toString();
@@ -72,12 +74,13 @@ class _HomePageState extends State<HomePage> {
                           )
                         ],
                         backgroundColor: colors[Random().nextInt(colors.length)],
-                          );
+                      );
       }
     );
   }
 
   createNotesDialog(BuildContext context, {var index:-1}){
+
     TextEditingController notesController = TextEditingController(text: index == -1? "": notes[index].toString());
 
     return showDialog(context: context,
@@ -87,20 +90,21 @@ class _HomePageState extends State<HomePage> {
                                     minLines: 4,
                                     maxLines: 20,
                                     autofocus: true,
-                                    
                                     controller: notesController,
                                     cursorColor: Colors.black,
                                     focusNode: FocusNode(),
-                                    keyboardType: TextInputType.text,
+                                    keyboardType: TextInputType.multiline,
                                     backgroundCursorColor: Colors.black,
                                     style: TextStyle(fontSize: 14, 
-                                                    fontFamily: 'Comic Sans', 
                                                     color: Colors.black),
                                     ),
                           actions: <Widget>[
                             MaterialButton(
                               child: Text('Save'),
-                              color: Colors.blue,
+                              color: Colors.green,
+                              height: 60,
+                              minWidth: 80,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                               onPressed: () {
                                 index == -1 ? newNote(notesController.value.text): editNote(index, notesController.value.text);
                                 setState(() {});
@@ -110,6 +114,9 @@ class _HomePageState extends State<HomePage> {
                             MaterialButton(
                               child: Text('Cancel'),
                               color: Colors.red,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                              height: 60,
+                              minWidth: 80,
                               onPressed: (){
                                 Navigator.of(context).pop();
                               },
@@ -129,19 +136,30 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text('Notes'),
       ),
-      body: ListView.builder(
+      body: GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
+              ),
         
         itemBuilder: (context, index) {
-        return Container(child: ListTile(title: Text(notes[index]), 
-                                        onTap: (){createNotesDialog(context, index:index);}, 
-                                        onLongPress: () {createDeleteDialog(context, index);},
-                                ),
-                        decoration: BoxDecoration(
-                                      color: colors[Random().nextInt(colors.length)],
-                                    ),
+        var colorIndex = Random().nextInt(colors.length);
+        return Container(child: DecoratedBox(
+                                  decoration: BoxDecoration(border: Border.all(color: borderColors[colorIndex], width: 10), borderRadius: BorderRadius.all(Radius.circular(8))),
+                                  child: Card(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                                    color: colors[colorIndex],
+                                    child: ListTile(title: Text(notes[index]), 
+                                                                      onTap: (){createNotesDialog(context, index:index);}, 
+                                                                      onLongPress: () {createDeleteDialog(context, index);},
+                                                                    ),
+                                  ),
+        ),
                         margin: const EdgeInsets.all(8),);
       },
-      itemCount: notes.length,),
+      itemCount: notes.length,
+      ),
       floatingActionButton: FloatingActionButton(
                               onPressed: (){
                                 createNotesDialog(context);
