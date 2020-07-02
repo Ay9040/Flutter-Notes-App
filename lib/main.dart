@@ -26,8 +26,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  var currentIndex = -1;
-
   var colors = [
     Colors.red[200],
     Colors.blue[200],
@@ -55,11 +53,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   newNote(var note, var index) async {
-    await database
-        .collection("notes")
-        .document(index.toString())
-        .setData({'note': note});
-    currentIndex = currentIndex + 1;
+    await database.collection("notes").add({'note': note});
     setState(() {});
   }
 
@@ -95,11 +89,9 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
-  createNotesDialog(BuildContext context, {var index: 0}) {
-    TextEditingController notesController = TextEditingController(
-        text: index > currentIndex
-            ? ""
-            : database.collection('notes').document(index).get().toString());
+  createNotesDialog(BuildContext context, {var index: -1, var original: ""}) {
+    TextEditingController notesController =
+        TextEditingController(text: original);
 
     return showDialog(
         context: context,
@@ -125,7 +117,7 @@ class _HomePageState extends State<HomePage> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(8))),
                 onPressed: () {
-                  index > currentIndex
+                  index == -1
                       ? newNote(notesController.value.text, index)
                       : editNote(index, notesController.value.text);
                   setState(() {});
@@ -185,11 +177,12 @@ class _HomePageState extends State<HomePage> {
                         ),
                         onTap: () {
                           createNotesDialog(context,
-                              index: snapshot.data.documents[index].documentId);
+                              index: snapshot.data.documents[index].documentID,
+                              original: snapshot.data.documents[index]['note']);
                         },
                         onLongPress: () {
                           createDeleteDialog(context,
-                              snapshot.data.documents[index].documentId);
+                              snapshot.data.documents[index].documentID);
                         },
                       ),
                     ),
@@ -202,7 +195,7 @@ class _HomePageState extends State<HomePage> {
           }),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          createNotesDialog(context, index: (currentIndex + 1));
+          createNotesDialog(context);
         },
         child: Icon(Icons.add),
       ),
