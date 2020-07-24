@@ -1,11 +1,49 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+final FirebaseAuth _auth = FirebaseAuth.instance;
+final GoogleSignIn googleSignIn = GoogleSignIn();
 final database = Firestore.instance;
+var userId;
+
+Future<String> signInWithGoogle() async {
+  final GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
+  final GoogleSignInAuthentication googleSignInAuthentication =
+      await googleSignInAccount.authentication;
+
+  final AuthCredential credential = GoogleAuthProvider.getCredential(
+    accessToken: googleSignInAuthentication.accessToken,
+    idToken: googleSignInAuthentication.idToken,
+  );
+
+  final AuthResult authResult = await _auth.signInWithCredential(credential);
+  final FirebaseUser user = authResult.user;
+
+  //assert(!user.isAnonymous);
+  //assert(await user.getIdToken() != null);
+
+  final FirebaseUser currentUser = await _auth.currentUser();
+  assert(user.uid == currentUser.uid);
+  await database.collection('users').add({'users': currentUser.uid});
+
+  return currentUser.uid;
+}
+
+void signOutGoogle() async {
+  await googleSignIn.signOut();
+  print("User Sign Out");
+}
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  signInWithGoogle().then((userid) {
+    userId = userid;
+    runApp(MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -44,6 +82,8 @@ class _HomePageState extends State<HomePage> {
   editNote(var index, var note) async {
     try {
       await database
+          .collection('users')
+          .document(userId)
           .collection('notes')
           .document(index.toString())
           .updateData({'note': note});
@@ -53,12 +93,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   newNote(var note, var index) async {
-    await database.collection("notes").add({'note': note});
+    await database
+        .collection('users')
+        .document(userId)
+        .collection("notes")
+        .add({'note': note});
     setState(() {});
   }
 
   deleteNote(var index) {
-    database.collection('notes').document(index.toString()).delete();
+    database
+        .collection('users')
+        .document(userId)
+        .collection('notes')
+        .document(index.toString())
+        .delete();
   }
 
   createDeleteDialog(BuildContext context, var index) {
@@ -148,7 +197,11 @@ class _HomePageState extends State<HomePage> {
         title: Text('Notes'),
       ),
       body: StreamBuilder(
-          stream: database.collection('notes').snapshots(),
+          stream: database
+              .collection('users')
+              .document(userId)
+              .collection('notes')
+              .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData)
               return Center(child: CircularProgressIndicator());
