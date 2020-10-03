@@ -22,8 +22,8 @@ Future<String> signInWithGoogle() async {
   final AuthResult authResult = await _auth.signInWithCredential(credential);
   final FirebaseUser user = authResult.user;
 
-  //assert(!user.isAnonymous);
-  //assert(await user.getIdToken() != null);
+  assert(!user.isAnonymous);
+  assert(await user.getIdToken() != null);
 
   final FirebaseUser currentUser = await _auth.currentUser();
   assert(user.uid == currentUser.uid);
@@ -31,9 +31,12 @@ Future<String> signInWithGoogle() async {
   return currentUser.uid;
 }
 
-void signOutGoogle() async {
+void signOutGoogle(BuildContext context) async {
+  await _auth.signOut();
   await googleSignIn.signOut();
-  print("User Sign Out");
+  Navigator.push(context, MaterialPageRoute(builder: (context) {
+    return LoginPage();
+  }));
 }
 
 void main() {
@@ -43,6 +46,32 @@ void main() {
     userId = userid;
     runApp(MyApp());
   });
+}
+
+class LoginPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+          appBar: AppBar(title: Text('Notes')),
+          body: Center(
+            child: MaterialButton(
+                onPressed: () => {
+                      signInWithGoogle().then((userid) {
+                        userId = userid;
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
+                          return HomePage();
+                        }));
+                      })
+                    },
+                color: Colors.white,
+                textColor: Colors.black,
+                child: Text("Sign in with Google")),
+          )),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -192,9 +221,20 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Notes'),
-      ),
+      appBar: AppBar(title: Text('Notes'), actions: <Widget>[
+        Padding(
+            padding: EdgeInsets.only(right: 20.0),
+            child: GestureDetector(
+              onTap: () {},
+              child: MaterialButton(
+                color: Colors.red,
+                onPressed: () {
+                  signOutGoogle(context);
+                },
+                child: Text("Logout"),
+              ),
+            ))
+      ]),
       body: StreamBuilder(
           stream: database
               .collection('users')
